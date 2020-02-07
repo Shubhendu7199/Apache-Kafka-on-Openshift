@@ -1,0 +1,81 @@
+KAFKA ON OPENSHIFT:
+1.Create a VM in GCP with machine type n1-standard-4 and the boot disk as Ubuntu 18.04.
+
+2.SSH into it and run the following commands:
+	2.1apt-get update –y
+	2.2.apt-get upgrade –y
+  
+3.To install Docker CE, download and add Docker GPG key with the following command:
+	3.1curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+  
+4.Once added, add the Docker CE repository with the following command:
+  4.1.add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release   -cs) stable"
+  
+5.Next, update and install Docker CE with the following command:
+	5.1.apt-get update -y
+  
+6.apt-get install docker-ce –y
+
+7.Check the status of Docker using:
+	7.1.systemctl status docker
+
+8.Now, let’s install and configure OpenShift:
+
+9.First, you will need to download the latest stable version of OpenShift from the Git repository. You can download the latest version of OpenShift from the Git repository with the following command:
+	9.1.cd /opt
+	9.2.wget https://github.com/openshift/origin/releases/download/v3.9.0/openshift-origin-client- tools-v3.9.0-191fece-linux-64bit.tar.gz
+  
+10.Once downloaded, extract the downloaded file with the following command and go to the dir:
+	10.1.tar -zvxf openshift-origin-client-tools-v3.9.0-191fece-linux-64bit.tar.gz
+	10.2.cd openshift-origin-client-tools-v3.9.0-191fece-linux-64bit
+	10.3.cp oc /usr/local/bin/
+  
+11.We can now check the version of oc using:
+	11.1.oc version
+  
+12.Next, you will need to add the insecure registry to docker daemon. You can do it with the following command and add the following lines:
+	12.1.nano /etc/docker/daemon.json
+	12.2.Add the following lines:
+{
+    		"insecure-registries" : [ "172.30.0.0/16" ]
+}
+
+13.Restart the docker service
+	13.1.systemctl restart docker
+14.Now, start the OpenShift cluster by specifying your IP address or hostname as shown below:
+
+	14.1.oc cluster up --public-hostname=[instance-ip-address]
+15.Now, log in to your cluster with the following command:
+15.1.oc login -u system:admin
+
+16.open your web browser and type the URL https://your-server-ip:8443
+
+17.Load resources (Templates, DeploymentConfigs, Services)
+
+18.oc create -f https://raw.githubusercontent.com/rondinif/openshift-kafka/master/resources.yaml
+
+19.Deploy the Apache Kafka + Apache Zookeeper pod
+
+20.oc new-app apache-kafka
+
+21.oc get pods
+
+22.Deploy a debugging container and connect to it
+	22.1.oc run -it --rm kafka-debug --image=rondinif/openshift-kafka --command – bash
+  
+23.Create a topic
+
+24.bin/kafka-topics.sh --create --zookeeper apache-kafka --replication-factor 1 --partitions 1 --topic test
+
+25.List topics
+	25.1.bin/kafka-topics.sh --list --zookeeper apache-kafka
+  
+26.Send some messages
+	26.1.bin/kafka-console-producer.sh --broker-list apache-kafka:9092 --topic test <<EOF
+    foo
+    bar
+    baz
+    EOF
+    
+27.Receive some messages
+  27.1.bin/kafka-console-consumer.sh --bootstrap-server apache-kafka:9092 --topic test --from-beginning
